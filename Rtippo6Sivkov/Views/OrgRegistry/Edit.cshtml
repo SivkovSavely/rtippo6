@@ -1,0 +1,126 @@
+@model Rtippo6Sivkov.Controllers.AddOrganizationViewModel
+@inject ApplicationDbContext DbContext
+
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@using Rtippo6Sivkov.Data
+
+@{
+    ViewBag.Title = "Редактирование организации";
+    Layout = "_Layout";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Редактирование организации @Model.Name</h1>
+</div>
+
+<form asp-controller="OrgRegistry" asp-action="PostEdit" asp-route-id="@Model.Id" method="post" class="add-org-form">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <table>
+        <tbody>
+        <tr>
+            <td>
+                <label>Наименование организации</label>
+            </td>
+            <td>
+                <input asp-for="Name"/>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>ИНН</label>
+            </td>
+            <td>
+                <input asp-for="Inn"/>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>КПП</label>
+            </td>
+            <td>
+                <input asp-for="Kpp"/>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>Адрес регистрации</label>
+            </td>
+            <td>
+                <input asp-for="Address"/>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>Физическое лицо</label>
+            </td>
+            <td>
+                <input asp-for="IsPhysical"/>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>Тип организации</label>
+            </td>
+            <td>
+                <select asp-for="TypeId">
+                    @{
+                        foreach (var organizationType in DbContext.OrganizationsTypes)
+                        {
+                            <option value="@organizationType.Id">@organizationType.Name</option>
+                        }
+                    }
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>Населенный пункт</label>
+            </td>
+            <td>
+                <select asp-for="LocalityId">
+                    @{
+                        foreach (var locality in DbContext.Localities)
+                        {
+                            <option value="@locality.Id">@locality.Name</option>
+                        }
+                    }
+                </select>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <input type="submit" class="add-org-btn" />
+</form>
+
+<style>
+    .add-org-btn {
+        margin: auto auto;
+    }
+    .add-org-form table {
+        margin: auto auto;
+    }
+    .add-org-form td {
+        padding: 0.1em 0.5em;
+    }
+    .add-org-form td:nth-child(1) {
+        text-align: right;
+    }
+    .add-org-form td:nth-child(2) {
+        display: flex;
+    }
+    .add-org-form td:nth-child(2) * {
+        flex: 1;
+    }
+    .add-org-form td:nth-child(2) input[type=checkbox] {
+        flex: unset !important;
+    }
+    
+    .input-validation-error {
+        background-color: red;
+    }
+</style>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

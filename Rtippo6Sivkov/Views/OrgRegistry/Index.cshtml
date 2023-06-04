@@ -170,7 +170,7 @@ else
             <td>
                 <b>@org.Name</b><br/>
                 <a asp-controller="OrgRegistry" asp-action="Read" asp-route-id="@org.Id">Открыть</a><br/>
-                <a>Редактировать</a><br/>
+                <a asp-controller="OrgRegistry" asp-action="GetEdit" asp-route-id="@org.Id">Редактировать</a><br/>
                 <a asp-controller="OrgRegistry" asp-action="Delete" asp-route-id="@org.Id">Удалить</a>
             </td>
             <td>@org.Type.Name</td>

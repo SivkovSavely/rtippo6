@@ -127,24 +127,95 @@ public class OrgRegistryController : Controller
             _dbContext.Organizations.Remove(entity);
             _dbContext.SaveChanges();
         }
+
+        return RedirectToAction("Index");
+    }
+
+    [HttpGet("Edit")]
+    public IActionResult GetEdit([FromQuery] int id)
+    {
+        var entity = _dbContext.Organizations
+            .Include(x => x.Type)
+            .Include(x => x.Locality)
+            .SingleOrDefault(x => x.Id == id);
+
+        if (entity == null)
+        {
+            Console.WriteLine($"Entity with id {id} not found");
+            return NotFound();
+        }
+
+        Console.WriteLine(entity.Inn);
+        Console.WriteLine(entity.Kpp);
+
+        var viewModel = new AddOrganizationViewModel
+        {
+            Id = entity.Id,
+            Name = entity.Name,
+            Inn = long.Parse(entity.Inn),
+            Kpp = long.Parse(entity.Kpp),
+            Address = entity.Address,
+            LocalityId = entity.Locality.Id,
+            TypeId = entity.Type.Id,
+            IsPhysical = entity.IsPhysical
+        };
+
+        return View("Edit", viewModel);
+    }
+
+    [HttpPost("Edit")]
+    [ValidateAntiForgeryToken]
+    public IActionResult PostEdit([FromQuery] int id, [FromForm] AddOrganizationViewModel addOrganizationViewModel)
+    {
+        if (!ModelState.IsValid)
+        {
+            Console.WriteLine("Model state is invalid");
+            return RedirectToAction("GetEdit");
+        }
+
+        var org = _dbContext.Organizations.SingleOrDefault(x => x.Id == id);
+
+        if (org == null)
+        {
+            Console.WriteLine($"Entity with id {id} not found");
+            return NotFound();
+        }
+        
+        var locality = _dbContext.Localities.Single(x => x.Id == addOrganizationViewModel.LocalityId);
+        var type = _dbContext.OrganizationsTypes.Single(x => x.Id == addOrganizationViewModel.TypeId);
+
+        org.Name = addOrganizationViewModel.Name;
+        org.Address = addOrganizationViewModel.Address;
+        org.Inn = addOrganizationViewModel.Inn.ToString();
+        org.Kpp = addOrganizationViewModel.Kpp.ToString();
+        org.IsPhysical = addOrganizationViewModel.IsPhysical;
+        org.Locality = locality;
+        org.Type = type;
+
+        _dbContext.Entry(org).State = EntityState.Modified;
+
+        _dbContext.SaveChanges();
+
         return RedirectToAction("Index");
     }
 }
 
 public class AddOrganizationViewModel
 {
+    public int Id { get; set; }
+    
     [Required(ErrorMessage = "Введите наименование организации")]
     public string Name { get; set; }
 
     [Required(ErrorMessage = "Введите ИНН организации")]
-    [Range(1, int.MaxValue, ErrorMessage = "ИНН должен быть положительным числом")]
-    [StringLength(10, MinimumLength = 10, ErrorMessage = "ИНН содержит 10 цифр")]
-    public int Inn { get; set; }
+    [Range(1, long.MaxValue, ErrorMessage = "ИНН должен быть положительным числом")]
+    [RegularExpression(@"^\d{10}$", ErrorMessage = "ИНН содержит 10 цифр")]
+    public long Inn { get; set; }
 
     [Required(ErrorMessage = "Введите КПП организации")]
-    [Range(1, int.MaxValue, ErrorMessage = "КПП должен быть положительным числом")]
-    [StringLength(10, MinimumLength = 10, ErrorMessage = "КПП содержит 9 цифр")]
-    public int Kpp { get; set; }
+    [Range(1, long.MaxValue, ErrorMessage = "КПП должен быть положительным числом")]
+    [RegularExpression(@"^\d{9}$", ErrorMessage = "КПП содержит 10 цифр")]
+    public long Kpp { get; set; }
 
     [Required(ErrorMessage = "Введите адрес регистрации организации")]
     public string Address { get; set; }
@@ -159,9 +230,9 @@ public class SearchOrganizationsViewModel
 {
     public string? Name { get; set; }
 
-    public int? Inn { get; set; }
+    public long? Inn { get; set; }
 
-    public int? Kpp { get; set; }
+    public long? Kpp { get; set; }
 
     public string? Address { get; set; }
 
