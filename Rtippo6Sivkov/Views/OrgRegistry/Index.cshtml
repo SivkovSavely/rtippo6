@@ -1,0 +1,65 @@
+@using Rtippo6Sivkov.Data
+@using Microsoft.EntityFrameworkCore
+@using Newtonsoft.Json
+@inject ApplicationDbContext DbContext
+
+@{
+    ViewBag.Title = "Реестр организаций";
+    Layout = "_Layout";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Реестр организаций</h1>
+</div>
+@{
+    var organizations = DbContext
+        .Organizations
+        .Include(x => x.Locality)
+        .Include(x => x.Type)
+        .ToArray();
+}
+@*<pre style="text-align: left">@JsonConvert.SerializeObject(organizations, Formatting.Indented)</pre>*@
+
+<table class="org-table">
+    <thead>
+    <tr>
+        <td>ID</td>
+        <td>Наименование</td>
+        <td>Тип</td>
+        <td>Населенный пункт</td>
+        <td>Адрес</td>
+        <td>ИНН</td>
+        <td>КПП</td>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var org in organizations)
+    {
+        <tr>
+            <td>@org.Id</td>
+            <td>@org.Name</td>
+            <td>@org.Type.Name</td>
+            <td>@org.Locality.Name</td>
+            <td>@org.Address</td>
+            <td>@org.Inn</td>
+            <td>@org.Kpp</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<button class="add-org-btn">Добавить новую организацию</button>
+
+<style>
+    .org-table {
+        border: 1px solid black;
+    }
+    .org-table td {
+        border: 1px solid black;
+        padding: 0.25em 0.5em;
+    }
+    
+    .add-org-btn {
+        margin: 1em 0;
+    }
+</style>
