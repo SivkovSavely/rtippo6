@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rtippo6Sivkov.Data;
 using Rtippo6Sivkov.Models;
@@ -6,6 +7,7 @@ using Rtippo6Sivkov.Models;
 namespace Rtippo6Sivkov.Controllers;
 
 [Route("OrgRegistry")]
+[Authorize]
 public class OrgRegistryController : Controller
 {
     private readonly ApplicationDbContext _dbContext;
