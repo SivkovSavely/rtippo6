@@ -1,0 +1,16 @@
+﻿@model Organization
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="text-center">
+    <h1 class="display-4">@Model.Name</h1>
+</div>
+
+<p>ИНН: @Model.Inn</p>
+<p>КПП: @Model.Kpp</p>
+<p>Тип: @Model.Type.Name</p>
+<p>Населенный пункт: @Model.Locality.Name</p>
+<p>Адрес регистрации: @Model.Address</p>
+<p>@(Model.IsPhysical ? "Физическое лицо" : "Юридическое лицо")</p>

@@ -103,6 +103,21 @@ public class OrgRegistryController : Controller
         return RedirectToAction("Index");
     }
 
+    [HttpGet("Read")]
+    public IActionResult Read([FromQuery] int id)
+    {
+        var entity = _dbContext.Organizations
+            .Include(x => x.Type)
+            .Include(x => x.Locality)
+            .SingleOrDefault(x => x.Id == id);
+        if (entity != null)
+        {
+            return View(entity);
+        }
+
+        return NotFound();
+    }
+
     [HttpGet("Delete")]
     public IActionResult Delete([FromQuery] int id)
     {
