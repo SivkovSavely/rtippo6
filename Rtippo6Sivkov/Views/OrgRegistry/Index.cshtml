@@ -167,7 +167,12 @@ else
     {
         <tr>
             <td>@org.Id</td>
-            <td>@org.Name</td>
+            <td>
+                @org.Name
+                <a>Открыть</a>
+                <a>Редактировать</a>
+                <a asp-controller="OrgRegistry" asp-action="Delete" asp-route-id="@org.Id">Удалить</a>
+            </td>
             <td>@org.Type.Name</td>
             <td>@org.Locality.Name</td>
             <td>@org.Address</td>

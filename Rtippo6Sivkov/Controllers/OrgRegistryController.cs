@@ -102,6 +102,18 @@ public class OrgRegistryController : Controller
         TempData["Sort"] = sort;
         return RedirectToAction("Index");
     }
+
+    [HttpGet("Delete")]
+    public IActionResult Delete([FromQuery] int id)
+    {
+        var entity = _dbContext.Organizations.Find(id);
+        if (entity != null)
+        {
+            _dbContext.Organizations.Remove(entity);
+            _dbContext.SaveChanges();
+        }
+        return RedirectToAction("Index");
+    }
 }
 
 public class AddOrganizationViewModel
