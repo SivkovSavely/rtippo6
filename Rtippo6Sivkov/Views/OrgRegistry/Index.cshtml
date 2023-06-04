@@ -1,6 +1,7 @@
 @using Rtippo6Sivkov.Data
 @using Microsoft.EntityFrameworkCore
 @using Newtonsoft.Json
+@using Rtippo6Sivkov.Controllers
 @inject ApplicationDbContext DbContext
 
 @{
@@ -11,14 +12,74 @@
 <div class="text-center">
     <h1 class="display-4">Реестр организаций</h1>
 </div>
+@*<pre style="text-align: left">@JsonConvert.SerializeObject(organizations, Formatting.Indented)</pre>*@
+
+<button class="add-org-btn" onclick="window.location='@Url.Action("GetSearch", "OrgRegistry")'">
+    Поиск
+</button>
+
 @{
-    var organizations = DbContext
+    var organizations = Array.Empty<Organization>();
+}
+
+@if (TempData["Filter"] is string filterString)
+{
+    var filter = JsonConvert.DeserializeObject<SearchOrganizationsViewModel>(filterString)!;
+
+    var organizationsQueryable = DbContext
+        .Organizations
+        .Include(x => x.Type)
+        .Include(x => x.Locality)
+        .AsQueryable();
+
+    if (filter.Name != null)
+    {
+        organizationsQueryable = organizationsQueryable.Where(x => x.Name.Contains(filter.Name));
+    }
+
+    if (filter.Inn != null)
+    {
+        organizationsQueryable = organizationsQueryable.Where(x => x.Inn == filter.Inn.ToString());
+    }
+
+    if (filter.Kpp != null)
+    {
+        organizationsQueryable = organizationsQueryable.Where(x => x.Kpp == filter.Kpp.ToString());
+    }
+
+    if (filter.Address != null)
+    {
+        organizationsQueryable = organizationsQueryable.Where(x => x.Address == filter.Address);
+    }
+
+    if (filter.IsPhysical != null)
+    {
+        organizationsQueryable = organizationsQueryable.Where(x => x.IsPhysical == filter.IsPhysical);
+    }
+
+    if (filter.TypeId != null)
+    {
+        organizationsQueryable = organizationsQueryable.Where(x => x.Type.Id == filter.TypeId);
+    }
+
+    if (filter.LocalityId != null)
+    {
+        organizationsQueryable = organizationsQueryable.Where(x => x.Locality.Id == filter.LocalityId);
+    }
+
+    organizations = organizationsQueryable.ToArray();
+
+    <br/>
+    <span>Фильтр: @filter</span><button onclick="window.location='@Url.Action("ClearSearchFilter", "OrgRegistry")'">Сбросить фильтр</button>
+}
+else
+{
+    organizations = DbContext
         .Organizations
         .Include(x => x.Locality)
         .Include(x => x.Type)
         .ToArray();
 }
-@*<pre style="text-align: left">@JsonConvert.SerializeObject(organizations, Formatting.Indented)</pre>*@
 
 <table class="org-table">
     <thead>
@@ -59,6 +120,28 @@
     .org-table td {
         border: 1px solid black;
         padding: 0.25em 0.5em;
+    }
+    
+    .org-table td:nth-child(1) {
+        width: 2%;
+    }
+    .org-table td:nth-child(2) {
+        width: 16%;
+    }
+    .org-table td:nth-child(3) {
+        width: 14%;
+    }
+    .org-table td:nth-child(4) {
+        width: 10%;
+    }
+    .org-table td:nth-child(5) {
+        width: 40%;
+    }
+    .org-table td:nth-child(6) {
+        width: 9%;
+    }
+    .org-table td:nth-child(7) {
+        width: 9%;
     }
     
     .add-org-btn {

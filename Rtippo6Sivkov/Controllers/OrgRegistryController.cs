@@ -1,6 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Rtippo6Sivkov.Data;
 using Rtippo6Sivkov.Models;
 
@@ -28,13 +32,12 @@ public class OrgRegistryController : Controller
         return View("Add");
     }
 
-    [HttpPost]
+    [HttpPost("Add")]
     [ValidateAntiForgeryToken]
     public IActionResult PostAdd([FromForm] AddOrganizationViewModel addOrganizationViewModel)
     {
         if (!ModelState.IsValid)
         {
-            ModelState.AddModelError("X", "YZ");
             return RedirectToAction("GetAdd");
         }
 
@@ -55,7 +58,42 @@ public class OrgRegistryController : Controller
         _dbContext.Organizations.Add(org);
         _dbContext.SaveChanges();
 
-        return View("Index");
+        return RedirectToAction("Index");
+    }
+
+    [HttpGet("Search")]
+    public IActionResult GetSearch()
+    {
+        return View("Search");
+    }
+
+    [HttpPost("Search")]
+    [ValidateAntiForgeryToken]
+    public IActionResult PostSearch([FromForm] SearchOrganizationsViewModel searchOrganizationsViewModel)
+    {
+        if (!ModelState.IsValid)
+        {
+            return RedirectToAction("GetSearch");
+        }
+
+        var locality = _dbContext.Localities
+            .SingleOrDefault(x => x.Id == (searchOrganizationsViewModel.LocalityId ?? -1));
+        var type = _dbContext.OrganizationsTypes
+            .SingleOrDefault(x => x.Id == (searchOrganizationsViewModel.TypeId ?? -1));
+
+        searchOrganizationsViewModel.Locality = locality;
+        searchOrganizationsViewModel.Type = type;
+
+        TempData["Filter"] = JsonConvert.SerializeObject(searchOrganizationsViewModel);
+
+        return RedirectToAction("Index");
+    }
+
+    [HttpGet("ClearSearchFilter")]
+    public IActionResult ClearSearchFilter()
+    {
+        TempData["Filter"] = null;
+        return RedirectToAction("Index");
     }
 }
 
@@ -81,4 +119,59 @@ public class AddOrganizationViewModel
 
     [Required] public int TypeId { get; set; }
     [Required] public int LocalityId { get; set; }
+}
+
+public class SearchOrganizationsViewModel
+{
+    public string? Name { get; set; }
+
+    public int? Inn { get; set; }
+
+    public int? Kpp { get; set; }
+
+    public string? Address { get; set; }
+
+    public bool? IsPhysical { get; set; }
+
+    public int? TypeId { get; set; }
+    public int? LocalityId { get; set; }
+
+    [BindNever, JsonIgnore] public OrganizationType? Type { get; set; }
+
+    [BindNever, JsonIgnore] public Locality? Locality { get; set; }
+
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+
+        void AppendIfNotNull<T>(T? value, string label)
+        {
+            if (value == null) return;
+            var valueString = value is bool b
+                ? b
+                    ? "да"
+                    : "нет"
+                : value is string s
+                    ? $"\"{s}\""
+                    : value.ToString()!;
+            if (sb.Length == 0)
+            {
+                sb.Append($"{label}: {valueString}");
+            }
+            else
+            {
+                sb.Append($" и {label}: {valueString}");
+            }
+        }
+
+        AppendIfNotNull(Name, "Наименование организации включает в себя");
+        AppendIfNotNull(Inn, "ИНН");
+        AppendIfNotNull(Kpp, "КПП");
+        AppendIfNotNull(Address, "Адрес регистрации");
+        AppendIfNotNull(IsPhysical, "Физическое лицо");
+        AppendIfNotNull(Type?.Name, "Тип");
+        AppendIfNotNull(Locality?.Name, "Населенный пункт");
+
+        return sb.Length == 0 ? "все записи" : sb.ToString();
+    }
 }

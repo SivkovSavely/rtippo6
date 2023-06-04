@@ -1,0 +1,123 @@
+@model Rtippo6Sivkov.Controllers.SearchOrganizationsViewModel
+@inject ApplicationDbContext DbContext
+
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@using Rtippo6Sivkov.Data
+
+@{
+    ViewBag.Title = "Поиск по реестру организаций";
+    Layout = "_Layout";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Поиск по реестру организаций</h1>
+</div>
+
+<form asp-controller="OrgRegistry" asp-action="PostSearch" method="post" class="search-orgs-form">
+    <table>
+        <tbody>
+        <tr>
+            <td>
+                <label>Наименование организации</label>
+            </td>
+            <td>
+                <input asp-for="Name"/>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>ИНН</label>
+            </td>
+            <td>
+                <input asp-for="Inn"/>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>КПП</label>
+            </td>
+            <td>
+                <input asp-for="Kpp"/>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>Адрес регистрации</label>
+            </td>
+            <td>
+                <input asp-for="Address"/>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>Физическое лицо</label>
+            </td>
+            <td>
+                <select asp-for="IsPhysical">
+                    <option value=""></option>
+                    <option value="true">Да</option>
+                    <option value="false">Нет</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>Тип организации</label>
+            </td>
+            <td>
+                <select asp-for="TypeId">
+                    <option value=""></option>
+                    @{
+                        foreach (var organizationType in DbContext.OrganizationsTypes)
+                        {
+                            <option value="@organizationType.Id">@organizationType.Name</option>
+                        }
+                    }
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>Населенный пункт</label>
+            </td>
+            <td>
+                <select asp-for="LocalityId">
+                    <option value=""></option>
+                    @{
+                        foreach (var locality in DbContext.Localities)
+                        {
+                            <option value="@locality.Id">@locality.Name</option>
+                        }
+                    }
+                </select>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <input type="submit" class="search-orgs-btn" />
+</form>
+
+<style>
+    .search-orgs-btn {
+        margin: auto auto;
+    }
+    .search-orgs-form table {
+        margin: auto auto;
+    }
+    .search-orgs-form td {
+        padding: 0.1em 0.5em;
+    }
+    .search-orgs-form td:nth-child(1) {
+        text-align: right;
+    }
+    .search-orgs-form td:nth-child(2) {
+        display: flex;
+    }
+    .search-orgs-form td:nth-child(2) * {
+        flex: 1;
+    }
+    .search-orgs-form td:nth-child(2) input[type=checkbox] {
+        flex: unset !important;
+    }
+</style>
