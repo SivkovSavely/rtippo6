@@ -59,11 +59,24 @@ public class OrgRegistryController : Controller
 
 public class AddOrganizationViewModel
 {
-    [Required] public string Name { get; set; }
-    [Required] public int Inn { get; set; }
-    [Required] public int Kpp { get; set; }
-    [Required] public string Address { get; set; }
+    [Required(ErrorMessage = "Введите наименование организации")]
+    public string Name { get; set; }
+
+    [Required(ErrorMessage = "Введите ИНН организации")]
+    [Range(1, int.MaxValue, ErrorMessage = "ИНН должен быть положительным числом")]
+    [StringLength(10, MinimumLength = 10, ErrorMessage = "ИНН содержит 10 цифр")]
+    public int Inn { get; set; }
+
+    [Required(ErrorMessage = "Введите КПП организации")]
+    [Range(1, int.MaxValue, ErrorMessage = "КПП должен быть положительным числом")]
+    [StringLength(10, MinimumLength = 10, ErrorMessage = "КПП содержит 9 цифр")]
+    public int Kpp { get; set; }
+
+    [Required(ErrorMessage = "Введите адрес регистрации организации")]
+    public string Address { get; set; }
+
     [Required] public bool IsPhysical { get; set; }
+
     [Required] public int TypeId { get; set; }
     [Required] public int LocalityId { get; set; }
 }
