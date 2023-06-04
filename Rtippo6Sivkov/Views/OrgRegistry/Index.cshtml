@@ -19,8 +19,30 @@
 </button>
 
 @{
+    var sort = TempData["Sort"] as string ?? "default";
     var organizations = Array.Empty<Organization>();
 }
+
+<select onchange="window.location=`@(Url.Action("Sort", "OrgRegistry"))?sort=${this.value}`" id="sort-select">
+    <option value="default">Сортировка по порядку добавления</option>
+    <option value="defaultR">Сортировка по порядку добавления (обратный)</option>
+    <option value="name">Сортировка по наименованию (А -> Я)</option>
+    <option value="nameR">Сортировка по наименованию (Я -> А)</option>
+    <option value="type">Сортировка по типу (А -> Я)</option>
+    <option value="typeR">Сортировка по типу (Я -> А)</option>
+    <option value="locality">Сортировка по населенному пункту (А -> Я)</option>
+    <option value="localityR">Сортировка по населенному пункту (Я -> А)</option>
+    <option value="address">Сортировка по адресу регистрации (А -> Я)</option>
+    <option value="addressR">Сортировка по адресу регистрации (Я -> А)</option>
+    <option value="inn">Сортировка по ИНН (0 -> 9)</option>
+    <option value="innR">Сортировка по ИНН (9 -> 0)</option>
+    <option value="kpp">Сортировка по КПП(0 -> 9)</option>
+    <option value="kppR">Сортировка по КПП(9 -> 0)</option>
+</select>
+<script>
+const sortSelect = document.getElementById("sort-select");
+sortSelect.value = "@sort";
+</script>
 
 @if (TempData["Filter"] is string filterString)
 {
@@ -79,6 +101,53 @@ else
         .Include(x => x.Locality)
         .Include(x => x.Type)
         .ToArray();
+}
+
+@{
+    switch (sort)
+    {
+        case "default":
+            break;
+        case "defaultR":
+            organizations = organizations.Reverse().ToArray();
+            break;
+        case "name":
+            organizations = organizations.OrderBy(x => x.Name).ToArray();
+            break;
+        case "nameR":
+            organizations = organizations.OrderByDescending(x => x.Name).ToArray();
+            break;
+        case "type":
+            organizations = organizations.OrderBy(x => x.Type.Name).ToArray();
+            break;
+        case "typeR":
+            organizations = organizations.OrderByDescending(x => x.Type.Name).ToArray();
+            break;
+        case "locality":
+            organizations = organizations.OrderBy(x => x.Locality.Name).ToArray();
+            break;
+        case "localityR":
+            organizations = organizations.OrderByDescending(x => x.Locality.Name).ToArray();
+            break;
+        case "address":
+            organizations = organizations.OrderBy(x => x.Address).ToArray();
+            break;
+        case "addressR":
+            organizations = organizations.OrderByDescending(x => x.Address).ToArray();
+            break;
+        case "inn":
+            organizations = organizations.OrderBy(x => x.Inn).ToArray();
+            break;
+        case "innR":
+            organizations = organizations.OrderByDescending(x => x.Inn).ToArray();
+            break;
+        case "kpp":
+            organizations = organizations.OrderBy(x => x.Kpp).ToArray();
+            break;
+        case "kppR":
+            organizations = organizations.OrderByDescending(x => x.Kpp).ToArray();
+            break;
+    }
 }
 
 <table class="org-table">

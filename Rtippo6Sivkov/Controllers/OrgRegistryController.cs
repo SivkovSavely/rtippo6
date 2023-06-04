@@ -95,6 +95,13 @@ public class OrgRegistryController : Controller
         TempData["Filter"] = null;
         return RedirectToAction("Index");
     }
+
+    [HttpGet("Sort")]
+    public IActionResult Sort([FromQuery] string sort)
+    {
+        TempData["Sort"] = sort;
+        return RedirectToAction("Index");
+    }
 }
 
 public class AddOrganizationViewModel
