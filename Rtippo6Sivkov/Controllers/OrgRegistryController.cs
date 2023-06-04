@@ -202,25 +202,46 @@ public class OrgRegistryController : Controller
         return RedirectToAction("Index");
     }
 
-    [HttpPost("Export")]
-    public IActionResult Export([FromForm] SearchOrganizationsViewModel searchOrganizationsViewModel,
-        [FromQuery] string sort = "default")
+    [HttpGet("Export")]
+    public IActionResult Export()
     {
+        var sort = HttpContext.Session.GetString("Sort") ?? "default";
+        var filterString = HttpContext.Session.GetString("Filter");
+        var filter = filterString != null
+            ? JsonConvert.DeserializeObject<SearchOrganizationsViewModel>(filterString)!
+            : null;
+        
         using var textWriter = new StringWriter();
         using var csvWriter = new CsvWriter(textWriter, new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             Delimiter = ","
         });
 
-        var org = new OrganizationFiltererSorter(_dbContext.Organizations, searchOrganizationsViewModel, sort);
+        var org = new OrganizationFiltererSorter(_dbContext.Organizations, filter, sort);
+        csvWriter.WriteField("id");
+        csvWriter.WriteField("name");
+        csvWriter.WriteField("type");
+        csvWriter.WriteField("inn");
+        csvWriter.WriteField("kpp");
+        csvWriter.WriteField("locality");
+        csvWriter.WriteField("address");
+        csvWriter.WriteField("is_physical");
+        csvWriter.NextRecord();
 
         foreach (var organization in org.Organizations)
         {
-            csvWriter.WriteRecord(organization);
+            csvWriter.WriteField(organization.Id);
+            csvWriter.WriteField(organization.Name);
+            csvWriter.WriteField(organization.Type.Name);
+            csvWriter.WriteField(organization.Inn);
+            csvWriter.WriteField(organization.Kpp);
+            csvWriter.WriteField(organization.Locality.Name);
+            csvWriter.WriteField(organization.Address);
+            csvWriter.WriteField(organization.IsPhysical);
             csvWriter.NextRecord();
         }
 
-        return File(Encoding.UTF8.GetBytes(textWriter.ToString()), "text/csv");
+        return File(Encoding.UTF8.GetBytes(textWriter.ToString()), "text/csv", DateTimeOffset.Now.ToString("s") + ".csv");
     }
 }
 
