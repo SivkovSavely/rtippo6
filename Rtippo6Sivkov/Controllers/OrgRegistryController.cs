@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Text;
+using CsvHelper;
+using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -69,7 +72,7 @@ public class OrgRegistryController : Controller
 
     [HttpPost("Search")]
     [ValidateAntiForgeryToken]
-    public IActionResult PostSearch([FromForm] SearchOrganizationsViewModel searchOrganizationsViewModel)
+    public async Task<IActionResult> PostSearch([FromForm] SearchOrganizationsViewModel searchOrganizationsViewModel)
     {
         if (!ModelState.IsValid)
         {
@@ -84,22 +87,25 @@ public class OrgRegistryController : Controller
         searchOrganizationsViewModel.Locality = locality;
         searchOrganizationsViewModel.Type = type;
 
-        TempData["Filter"] = JsonConvert.SerializeObject(searchOrganizationsViewModel);
+        HttpContext.Session.SetString("Filter", JsonConvert.SerializeObject(searchOrganizationsViewModel));
+        await HttpContext.Session.CommitAsync();
 
         return RedirectToAction("Index");
     }
 
     [HttpGet("ClearSearchFilter")]
-    public IActionResult ClearSearchFilter()
+    public async Task<IActionResult> ClearSearchFilter()
     {
-        TempData["Filter"] = null;
+        HttpContext.Session.Remove("Filter");
+        await HttpContext.Session.CommitAsync();
         return RedirectToAction("Index");
     }
 
     [HttpGet("Sort")]
-    public IActionResult Sort([FromQuery] string sort)
+    public async Task<IActionResult> Sort([FromQuery] string sort)
     {
-        TempData["Sort"] = sort;
+        HttpContext.Session.SetString("Sort", sort);
+        await HttpContext.Session.CommitAsync();
         return RedirectToAction("Index");
     }
 
@@ -145,9 +151,6 @@ public class OrgRegistryController : Controller
             return NotFound();
         }
 
-        Console.WriteLine(entity.Inn);
-        Console.WriteLine(entity.Kpp);
-
         var viewModel = new AddOrganizationViewModel
         {
             Id = entity.Id,
@@ -180,7 +183,7 @@ public class OrgRegistryController : Controller
             Console.WriteLine($"Entity with id {id} not found");
             return NotFound();
         }
-        
+
         var locality = _dbContext.Localities.Single(x => x.Id == addOrganizationViewModel.LocalityId);
         var type = _dbContext.OrganizationsTypes.Single(x => x.Id == addOrganizationViewModel.TypeId);
 
@@ -198,12 +201,150 @@ public class OrgRegistryController : Controller
 
         return RedirectToAction("Index");
     }
+
+    [HttpPost("Export")]
+    public IActionResult Export([FromForm] SearchOrganizationsViewModel searchOrganizationsViewModel,
+        [FromQuery] string sort = "default")
+    {
+        using var textWriter = new StringWriter();
+        using var csvWriter = new CsvWriter(textWriter, new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            Delimiter = ","
+        });
+
+        var org = new OrganizationFiltererSorter(_dbContext.Organizations, searchOrganizationsViewModel, sort);
+
+        foreach (var organization in org.Organizations)
+        {
+            csvWriter.WriteRecord(organization);
+            csvWriter.NextRecord();
+        }
+
+        return File(Encoding.UTF8.GetBytes(textWriter.ToString()), "text/csv");
+    }
+}
+
+public class OrganizationFiltererSorter
+{
+    public IEnumerable<Organization> Organizations { get; set; }
+
+    public OrganizationFiltererSorter(
+        DbSet<Organization> organizations,
+        SearchOrganizationsViewModel? filter,
+        string sort)
+    {
+        var organizationsQueryable = Filter(organizations, filter);
+        organizationsQueryable = Sort(organizationsQueryable, sort);
+
+        Organizations = organizationsQueryable.AsEnumerable();
+    }
+
+    private static IQueryable<Organization> Filter(
+        DbSet<Organization> organizations,
+        SearchOrganizationsViewModel? filter)
+    {
+        IQueryable<Organization> organizationsQueryable = organizations
+            .Include(x => x.Type)
+            .Include(x => x.Locality);
+
+        if (filter != null)
+        {
+            if (filter.Name != null)
+            {
+                organizationsQueryable = organizationsQueryable.Where(x => x.Name.Contains(filter.Name));
+            }
+
+            if (filter.Inn != null)
+            {
+                organizationsQueryable = organizationsQueryable.Where(x => x.Inn == filter.Inn.ToString());
+            }
+
+            if (filter.Kpp != null)
+            {
+                organizationsQueryable = organizationsQueryable.Where(x => x.Kpp == filter.Kpp.ToString());
+            }
+
+            if (filter.Address != null)
+            {
+                organizationsQueryable = organizationsQueryable.Where(x => x.Address == filter.Address);
+            }
+
+            if (filter.IsPhysical != null)
+            {
+                organizationsQueryable = organizationsQueryable.Where(x => x.IsPhysical == filter.IsPhysical);
+            }
+
+            if (filter.TypeId != null)
+            {
+                organizationsQueryable = organizationsQueryable.Where(x => x.Type.Id == filter.TypeId);
+            }
+
+            if (filter.LocalityId != null)
+            {
+                organizationsQueryable = organizationsQueryable.Where(x => x.Locality.Id == filter.LocalityId);
+            }
+        }
+
+        return organizationsQueryable;
+    }
+
+    private static IQueryable<Organization> Sort(
+        IQueryable<Organization> organizationsQueryable,
+        string sort)
+    {
+        switch (sort)
+        {
+            case "default":
+                break;
+            case "defaultR":
+                organizationsQueryable = organizationsQueryable.AsEnumerable().Reverse().AsQueryable();
+                break;
+            case "name":
+                organizationsQueryable = organizationsQueryable.OrderBy(x => x.Name);
+                break;
+            case "nameR":
+                organizationsQueryable = organizationsQueryable.OrderByDescending(x => x.Name);
+                break;
+            case "type":
+                organizationsQueryable = organizationsQueryable.OrderBy(x => x.Type.Name);
+                break;
+            case "typeR":
+                organizationsQueryable = organizationsQueryable.OrderByDescending(x => x.Type.Name);
+                break;
+            case "locality":
+                organizationsQueryable = organizationsQueryable.OrderBy(x => x.Locality.Name);
+                break;
+            case "localityR":
+                organizationsQueryable = organizationsQueryable.OrderByDescending(x => x.Locality.Name);
+                break;
+            case "address":
+                organizationsQueryable = organizationsQueryable.OrderBy(x => x.Address);
+                break;
+            case "addressR":
+                organizationsQueryable = organizationsQueryable.OrderByDescending(x => x.Address);
+                break;
+            case "inn":
+                organizationsQueryable = organizationsQueryable.OrderBy(x => x.Inn);
+                break;
+            case "innR":
+                organizationsQueryable = organizationsQueryable.OrderByDescending(x => x.Inn);
+                break;
+            case "kpp":
+                organizationsQueryable = organizationsQueryable.OrderBy(x => x.Kpp);
+                break;
+            case "kppR":
+                organizationsQueryable = organizationsQueryable.OrderByDescending(x => x.Kpp);
+                break;
+        }
+
+        return organizationsQueryable;
+    }
 }
 
 public class AddOrganizationViewModel
 {
     public int Id { get; set; }
-    
+
     [Required(ErrorMessage = "Введите наименование организации")]
     public string Name { get; set; }
 
