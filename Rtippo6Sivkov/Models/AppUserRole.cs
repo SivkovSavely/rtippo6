@@ -63,6 +63,8 @@ public static class AppUserExtensions
             
             "гость" => false,
             
+            "администратор" => true,
+            
             _ => throw new Exception($"Неизвестная роль: {user.Role.Name}")
         };
     }
@@ -124,6 +126,8 @@ public static class AppUserExtensions
                 or "организации по продаже товаров и предоставлению услуг для животных",
             
             "гость" => false,
+            
+            "администратор" => true,
             
             _ => throw new Exception($"Неизвестная роль: {user.Role.Name}")
         };
