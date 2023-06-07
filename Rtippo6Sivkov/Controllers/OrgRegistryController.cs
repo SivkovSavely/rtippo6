@@ -213,7 +213,10 @@ public class OrgRegistryController : Controller
             return RedirectToAction("GetEdit");
         }
 
-        var org = _dbContext.Organizations.SingleOrDefault(x => x.Id == id);
+        var org = _dbContext.Organizations
+            .Include(x => x.Type)
+            .Include(x => x.Locality)
+            .SingleOrDefault(x => x.Id == id);
 
         if (org == null)
         {

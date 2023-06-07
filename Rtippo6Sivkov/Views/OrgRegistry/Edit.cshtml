@@ -77,7 +77,7 @@
                         var types = DbContext
                             .OrganizationsTypes
                             .AsEnumerable()
-                            .Where(t => user.GetAllowedEntryTypesToAdd().Contains(t.Name.ToLower()));
+                            .Where(t => user.GetAllowedEntryTypesToAdd().Contains(t.Name));
                         foreach (var organizationType in types)
                         {
                             <option value="@organizationType.Id">@organizationType.Name</option>
@@ -96,7 +96,7 @@
                         var localities = DbContext
                             .Localities
                             .AsEnumerable()
-                            .Where(t => user.GetAllowedLocalitiesToAdd().Contains(t.Name.ToLower()));
+                            .Where(t => user.GetAllowedLocalitiesToAdd().Contains(t.Name));
                         foreach (var locality in localities)
                         {
                             <option value="@locality.Id">@locality.Name</option>
