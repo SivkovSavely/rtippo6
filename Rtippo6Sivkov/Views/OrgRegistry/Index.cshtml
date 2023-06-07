@@ -98,6 +98,12 @@ sortSelect.value = "@sort";
             <td>@org.Kpp</td>
         </tr>
     }
+    @if (!filtererSorter.Organizations.Any())
+    {
+        <tr>
+            <td colspan="7">Записи не найдены!</td>
+        </tr>
+    }
     </tbody>
 </table>
 
