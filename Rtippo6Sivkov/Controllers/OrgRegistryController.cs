@@ -49,7 +49,7 @@ public class OrgRegistryController : Controller
     [HttpGet("Add")]
     public async Task<IActionResult> GetAdd()
     {
-        if ((await GetUser()).CanCreateOrEditRegistryEntries() != true)
+        if ((await GetUser()).CanCreateOrEditRegistryEntry() != true)
         {
             return View("AccessDenied", new AccessDeniedViewModel("Доступ к добавлению записей в реестр запрещен"));
         }
@@ -79,7 +79,7 @@ public class OrgRegistryController : Controller
             Type = type
         };
         
-        if ((await GetUser()).CanCreateOrEditRegistryEntries(org.Locality) != true)
+        if ((await GetUser()).CanCreateOrEditRegistryEntry(org) != true)
         {
             return View("AccessDenied", new AccessDeniedViewModel("Доступ к добавлению записей в реестр запрещен"));
         }
@@ -138,19 +138,19 @@ public class OrgRegistryController : Controller
     [HttpGet("Read")]
     public async Task<IActionResult> Read([FromQuery] int id)
     {
-        var entity = _dbContext.Organizations
+        var org = _dbContext.Organizations
             .Include(x => x.Type)
             .Include(x => x.Locality)
             .SingleOrDefault(x => x.Id == id);
 
-        if (entity != null)
+        if (org != null)
         {
-            if ((await GetUser()).CanReadRegistryEntries(entity.Locality) != true)
+            if ((await GetUser()).CanReadRegistryEntry(org) != true)
             {
                 return View("AccessDenied", new AccessDeniedViewModel("Доступ к чтению данной записи запрещен"));
             }
             
-            return View(entity);
+            return View(org);
         }
 
         return NotFound();
@@ -172,32 +172,32 @@ public class OrgRegistryController : Controller
     [HttpGet("Edit")]
     public async Task<IActionResult> GetEdit([FromQuery] int id)
     {
-        var entity = _dbContext.Organizations
+        var org = _dbContext.Organizations
             .Include(x => x.Type)
             .Include(x => x.Locality)
             .SingleOrDefault(x => x.Id == id);
 
-        if (entity == null)
+        if (org == null)
         {
             Console.WriteLine($"Entity with id {id} not found");
             return NotFound();
         }
         
-        if ((await GetUser()).CanReadRegistryEntries(entity.Locality) != true)
+        if ((await GetUser()).CanCreateOrEditRegistryEntry(org) != true)
         {
             return View("AccessDenied", new AccessDeniedViewModel("Доступ к изменению данной записи запрещен"));
         }
 
         var viewModel = new AddOrganizationViewModel
         {
-            Id = entity.Id,
-            Name = entity.Name,
-            Inn = long.Parse(entity.Inn),
-            Kpp = long.Parse(entity.Kpp),
-            Address = entity.Address,
-            LocalityId = entity.Locality.Id,
-            TypeId = entity.Type.Id,
-            IsPhysical = entity.IsPhysical
+            Id = org.Id,
+            Name = org.Name,
+            Inn = long.Parse(org.Inn),
+            Kpp = long.Parse(org.Kpp),
+            Address = org.Address,
+            LocalityId = org.Locality.Id,
+            TypeId = org.Type.Id,
+            IsPhysical = org.IsPhysical
         };
 
         return View("Edit", viewModel);
@@ -221,7 +221,7 @@ public class OrgRegistryController : Controller
             return NotFound();
         }
         
-        if ((await GetUser()).CanReadRegistryEntries(org.Locality) != true)
+        if ((await GetUser()).CanCreateOrEditRegistryEntry(org) != true)
         {
             return View("AccessDenied", new AccessDeniedViewModel("Доступ к изменению данной записи запрещен"));
         }
@@ -306,7 +306,7 @@ public class OrganizationFiltererSorter
 
         Organizations = organizationsQueryable
             .AsEnumerable()
-            .Where(org => user.CanReadRegistryEntries(org.Locality));
+            .Where(user.CanReadRegistryEntry);
     }
 
     private static IQueryable<Organization> Filter(

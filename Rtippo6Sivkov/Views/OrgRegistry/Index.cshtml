@@ -87,9 +87,18 @@ sortSelect.value = "@sort";
             <td>@org.Id</td>
             <td>
                 <b>@org.Name</b><br/>
-                <a asp-controller="OrgRegistry" asp-action="Read" asp-route-id="@org.Id">Открыть</a><br/>
-                <a asp-controller="OrgRegistry" asp-action="GetEdit" asp-route-id="@org.Id">Редактировать</a><br/>
-                <a asp-controller="OrgRegistry" asp-action="Delete" asp-route-id="@org.Id">Удалить</a>
+                @if (user.CanReadRegistryEntry(org))
+                {
+                    <a asp-controller="OrgRegistry" asp-action="Read" asp-route-id="@org.Id">Открыть</a>
+                    <br/>
+                }
+                @if (user.CanCreateOrEditRegistryEntry(org))
+                {
+                    <a asp-controller="OrgRegistry" asp-action="GetEdit" asp-route-id="@org.Id">Редактировать</a>
+                    <br/>
+                    <a asp-controller="OrgRegistry" asp-action="Delete" asp-route-id="@org.Id">Удалить</a>
+                    <br/>
+                }
             </td>
             <td>@org.Type.Name</td>
             <td>@org.Locality.Name</td>
@@ -107,7 +116,7 @@ sortSelect.value = "@sort";
     </tbody>
 </table>
 
-@if (user.CanCreateOrEditRegistryEntries())
+@if (user.CanCreateOrEditRegistryEntry())
 {
     <button class="add-org-btn" onclick="window.location='@Url.Action("GetAdd", "OrgRegistry")'">
         Добавить новую организацию

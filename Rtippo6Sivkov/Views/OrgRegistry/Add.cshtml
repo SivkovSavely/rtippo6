@@ -1,12 +1,22 @@
 @model Rtippo6Sivkov.Controllers.AddOrganizationViewModel
 @inject ApplicationDbContext DbContext
+@inject UserManager<AppUser> UserManager
 
 @using Microsoft.AspNetCore.Mvc.TagHelpers
+@using Microsoft.EntityFrameworkCore
 @using Rtippo6Sivkov.Data
+@using Microsoft.AspNetCore.Identity
 
 @{
     ViewBag.Title = "Добавление новой организации";
     Layout = "_Layout";
+    
+    var user = await UserManager.GetUserAsync(Context.User);
+    user = DbContext
+        .AppUsers
+        .Include(x => x.Locality)
+        .Include(x => x.Role)
+        .Single(x => x.Id == user!.Id);
 }
 
 <div class="text-center">
@@ -64,7 +74,11 @@
             <td>
                 <select asp-for="TypeId">
                     @{
-                        foreach (var organizationType in DbContext.OrganizationsTypes)
+                        var types = DbContext
+                            .OrganizationsTypes
+                            .AsEnumerable()
+                            .Where(t => user.GetAllowedEntryTypesToAdd().Contains(t.Name));
+                        foreach (var organizationType in types)
                         {
                             <option value="@organizationType.Id">@organizationType.Name</option>
                         }
@@ -79,7 +93,11 @@
             <td>
                 <select asp-for="LocalityId">
                     @{
-                        foreach (var locality in DbContext.Localities)
+                        var localities = DbContext
+                            .Localities
+                            .AsEnumerable()
+                            .Where(t => user.GetAllowedLocalitiesToAdd().Contains(t.Name));
+                        foreach (var locality in localities)
                         {
                             <option value="@locality.Id">@locality.Name</option>
                         }
