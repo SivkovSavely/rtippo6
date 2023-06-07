@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Rtippo6Sivkov.Data;
 using Rtippo6Sivkov.Models;
 
@@ -9,10 +10,17 @@ namespace Rtippo6Sivkov.Controllers;
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
+    private readonly ApplicationDbContext _dbContext;
+    private readonly UserManager<AppUser> _userManager;
 
-    public HomeController(ILogger<HomeController> logger)
+    public HomeController(
+        ILogger<HomeController> logger,
+        ApplicationDbContext dbContext,
+        UserManager<AppUser> userManager)
     {
         _logger = logger;
+        _dbContext = dbContext;
+        _userManager = userManager;
     }
 
     public IActionResult Index()
@@ -23,6 +31,16 @@ public class HomeController : Controller
     public IActionResult Privacy()
     {
         return View();
+    }
+
+    public IActionResult MyAccount()
+    {
+        var currentUser = _dbContext
+            .AppUsers
+            .Include(x => x.Locality)
+            .Include(x => x.Role)
+            .Single(x => x.Id == _userManager.GetUserId(User));
+        return View(currentUser);
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

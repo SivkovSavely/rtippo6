@@ -1,0 +1,13 @@
+@model AppUser
+
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "Мой профиль";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Мой профиль</h1>
+    <p>Имя пользователя: @Model.UserName</p>
+    <p>Населенный пункт: @Model.Locality.Name</p>
+    <p>Роль в системе: @Model.Role.Name</p>
+</div>
