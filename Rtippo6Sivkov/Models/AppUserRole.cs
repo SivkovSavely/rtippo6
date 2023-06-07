@@ -70,8 +70,9 @@ public static class AppUserExtensions
     /// в данном муниципальном образовании?
     /// </summary>
     /// <param name="user">Пользователь, у которого проверяют права.</param>
+    /// <param name="locality">Муниципальное образование, доступ к которому нужно проверить у данной роли.</param>
     /// <returns>true, если имеет право; false, если не имеет.</returns>
-    public static bool CanCreateOrEditRegistryEntries(this AppUser user)
+    public static bool CanCreateOrEditRegistryEntries(this AppUser user, Locality locality)
     {
         return user.Role.Name.ToLower() switch
         {
@@ -105,7 +106,7 @@ public static class AppUserExtensions
             // - Ветеринарная клиника: частная;
             // - Благотворительный фонд;
             // - Организации по продаже товаров и предоставлению услуг для животных
-            "оператор омсу" => user.Locality.Name.ToLower() is
+            "оператор омсу" => user.Locality.Id == locality.Id && user.Locality.Name.ToLower() is
                 "приют"
                 or "организация по отлову"
                 or "организация по отлову и приют"
