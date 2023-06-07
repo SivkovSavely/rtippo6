@@ -14,6 +14,8 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<Organization> Organizations { get; set; } = null!;
     public DbSet<OrganizationType> OrganizationsTypes { get; set; } = null!;
     public DbSet<Locality> Localities { get; set; } = null!;
+    public DbSet<AppUser> AppUsers { get; set; } = null!;
+    public DbSet<AppUserRole> AppUserRoles { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -43,5 +45,9 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
             .Entity<AppUser>()
             .HasOne(x => x.Role)
             .WithMany(x => x.UsersWithRole);
+
+        builder
+            .Entity<AppUserRole>()
+            .ToTable("AppUserRole");
     }
 }

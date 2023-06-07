@@ -32,11 +32,11 @@ public class HomeController : Controller
     }
 
     public async Task<IActionResult> CreateAdminUser(
-        [FromServices] UserManager<IdentityUser> userManager,
+        [FromServices] UserManager<AppUser> userManager,
         [FromServices] ApplicationDbContext dbContext)
     {
         _logger.LogInformation("Creating Admin user with password '__@Dm1n__'");
-        var user = new IdentityUser("Admin")
+        var user = new AppUser("Admin")
         {
             Email = "admin@localhost.com"
         };

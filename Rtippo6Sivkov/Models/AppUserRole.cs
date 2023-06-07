@@ -61,6 +61,8 @@ public static class AppUserExtensions
                 or "благотворительный фонд"
                 or "организации по продаже товаров и предоставлению услуг для животных",
             
+            "гость" => false,
+            
             _ => throw new Exception($"Неизвестная роль: {user.Role.Name}")
         };
     }
@@ -70,9 +72,14 @@ public static class AppUserExtensions
     /// в данном муниципальном образовании?
     /// </summary>
     /// <param name="user">Пользователь, у которого проверяют права.</param>
-    /// <param name="locality">Муниципальное образование, доступ к которому нужно проверить у данной роли.</param>
+    /// <param name="locality">
+    /// Муниципальное образование, доступ к которому нужно проверить у данной роли.
+    /// Если locality == null, то муниципальное образование не берется в расчет проверки прав пользователя.
+    /// Например, при попытке добавления записи (открытия формы) нет возможности узнать, в какое муниципальное
+    /// образование будет попытка добавить запись.
+    /// </param>
     /// <returns>true, если имеет право; false, если не имеет.</returns>
-    public static bool CanCreateOrEditRegistryEntries(this AppUser user, Locality locality)
+    public static bool CanCreateOrEditRegistryEntries(this AppUser user, Locality? locality = null)
     {
         return user.Role.Name.ToLower() switch
         {
@@ -106,7 +113,7 @@ public static class AppUserExtensions
             // - Ветеринарная клиника: частная;
             // - Благотворительный фонд;
             // - Организации по продаже товаров и предоставлению услуг для животных
-            "оператор омсу" => user.Locality.Id == locality.Id && user.Locality.Name.ToLower() is
+            "оператор омсу" => (locality == null || user.Locality.Id == locality.Id) && user.Locality.Name.ToLower() is
                 "приют"
                 or "организация по отлову"
                 or "организация по отлову и приют"
@@ -115,6 +122,8 @@ public static class AppUserExtensions
                 or "ветеринарная клиника: частная"
                 or "благотворительный фонд"
                 or "организации по продаже товаров и предоставлению услуг для животных",
+            
+            "гость" => false,
             
             _ => throw new Exception($"Неизвестная роль: {user.Role.Name}")
         };

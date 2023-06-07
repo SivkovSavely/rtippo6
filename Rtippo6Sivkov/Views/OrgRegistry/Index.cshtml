@@ -1,8 +1,10 @@
 @using Rtippo6Sivkov.Data
-@using Microsoft.EntityFrameworkCore
 @using Newtonsoft.Json
 @using Rtippo6Sivkov.Controllers
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext DbContext
+@inject UserManager<AppUser> UserManager
 
 @{
     ViewBag.Title = "Реестр организаций";
@@ -12,7 +14,6 @@
 <div class="text-center">
     <h1 class="display-4">Реестр организаций</h1>
 </div>
-@*<pre style="text-align: left">@JsonConvert.SerializeObject(organizations, Formatting.Indented)</pre>*@
 
 <button class="add-org-btn" onclick="window.location='@Url.Action("GetSearch", "OrgRegistry")'">
     Поиск
@@ -47,14 +48,24 @@ sortSelect.value = "@sort";
 
     if (Context.Session.Keys.Contains("Filter"))
     {
-        var filterString = Context.Session.GetString("Filter");
+        var filterString = Context.Session.GetString("Filter")!;
         filter = JsonConvert.DeserializeObject<SearchOrganizationsViewModel>(filterString)!;
         
         <br/>
         <span>Фильтр: @filter</span><button onclick="window.location='@Url.Action("ClearSearchFilter", "OrgRegistry")'">Сбросить фильтр</button>
     }
 
-    var filtererSorter = new OrganizationFiltererSorter(DbContext.Organizations, filter, sort);
+    var user = await UserManager.GetUserAsync(Context.User);
+    user = DbContext
+        .AppUsers
+        .Include(x => x.Locality)
+        .Include(x => x.Role)
+        .Single(x => x.Id == user!.Id);
+    var filtererSorter = new OrganizationFiltererSorter(
+        DbContext.Organizations,
+        filter,
+        sort,
+        user!);
 }
 
 <table class="org-table">

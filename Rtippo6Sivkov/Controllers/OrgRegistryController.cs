@@ -4,6 +4,7 @@ using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
@@ -18,10 +19,26 @@ namespace Rtippo6Sivkov.Controllers;
 public class OrgRegistryController : Controller
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly UserManager<AppUser> _userManager;
 
-    public OrgRegistryController(ApplicationDbContext dbContext)
+    private async Task<AppUser> GetUser()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null)
+            throw new InvalidOperationException("User is null");
+        return _dbContext
+            .AppUsers
+            .Include(x => x.Locality)
+            .Include(x => x.Role)
+            .Single(x => x.Id == user.Id);
+    }
+
+    public OrgRegistryController(
+        ApplicationDbContext dbContext,
+        UserManager<AppUser> userManager)
     {
         _dbContext = dbContext;
+        _userManager = userManager;
     }
 
     public IActionResult Index()
@@ -30,14 +47,18 @@ public class OrgRegistryController : Controller
     }
 
     [HttpGet("Add")]
-    public IActionResult GetAdd()
+    public async Task<IActionResult> GetAdd()
     {
+        if ((await GetUser()).CanCreateOrEditRegistryEntries() != true)
+        {
+            return View("AccessDenied", new AccessDeniedViewModel("Доступ к добавлению записей в реестр запрещен"));
+        }
         return View("Add");
     }
 
     [HttpPost("Add")]
     [ValidateAntiForgeryToken]
-    public IActionResult PostAdd([FromForm] AddOrganizationViewModel addOrganizationViewModel)
+    public async Task<IActionResult> PostAdd([FromForm] AddOrganizationViewModel addOrganizationViewModel)
     {
         if (!ModelState.IsValid)
         {
@@ -57,9 +78,14 @@ public class OrgRegistryController : Controller
             Locality = locality,
             Type = type
         };
+        
+        if ((await GetUser()).CanCreateOrEditRegistryEntries(org.Locality) != true)
+        {
+            return View("AccessDenied", new AccessDeniedViewModel("Доступ к добавлению записей в реестр запрещен"));
+        }
 
         _dbContext.Organizations.Add(org);
-        _dbContext.SaveChanges();
+        await _dbContext.SaveChangesAsync();
 
         return RedirectToAction("Index");
     }
@@ -110,14 +136,20 @@ public class OrgRegistryController : Controller
     }
 
     [HttpGet("Read")]
-    public IActionResult Read([FromQuery] int id)
+    public async Task<IActionResult> Read([FromQuery] int id)
     {
         var entity = _dbContext.Organizations
             .Include(x => x.Type)
             .Include(x => x.Locality)
             .SingleOrDefault(x => x.Id == id);
+
         if (entity != null)
         {
+            if ((await GetUser()).CanReadRegistryEntries(entity.Locality) != true)
+            {
+                return View("AccessDenied", new AccessDeniedViewModel("Доступ к чтению данной записи запрещен"));
+            }
+            
             return View(entity);
         }
 
@@ -138,7 +170,7 @@ public class OrgRegistryController : Controller
     }
 
     [HttpGet("Edit")]
-    public IActionResult GetEdit([FromQuery] int id)
+    public async Task<IActionResult> GetEdit([FromQuery] int id)
     {
         var entity = _dbContext.Organizations
             .Include(x => x.Type)
@@ -149,6 +181,11 @@ public class OrgRegistryController : Controller
         {
             Console.WriteLine($"Entity with id {id} not found");
             return NotFound();
+        }
+        
+        if ((await GetUser()).CanReadRegistryEntries(entity.Locality) != true)
+        {
+            return View("AccessDenied", new AccessDeniedViewModel("Доступ к изменению данной записи запрещен"));
         }
 
         var viewModel = new AddOrganizationViewModel
@@ -168,7 +205,7 @@ public class OrgRegistryController : Controller
 
     [HttpPost("Edit")]
     [ValidateAntiForgeryToken]
-    public IActionResult PostEdit([FromQuery] int id, [FromForm] AddOrganizationViewModel addOrganizationViewModel)
+    public async Task<IActionResult> PostEdit([FromQuery] int id, [FromForm] AddOrganizationViewModel addOrganizationViewModel)
     {
         if (!ModelState.IsValid)
         {
@@ -182,6 +219,11 @@ public class OrgRegistryController : Controller
         {
             Console.WriteLine($"Entity with id {id} not found");
             return NotFound();
+        }
+        
+        if ((await GetUser()).CanReadRegistryEntries(org.Locality) != true)
+        {
+            return View("AccessDenied", new AccessDeniedViewModel("Доступ к изменению данной записи запрещен"));
         }
 
         var locality = _dbContext.Localities.Single(x => x.Id == addOrganizationViewModel.LocalityId);
@@ -203,7 +245,7 @@ public class OrgRegistryController : Controller
     }
 
     [HttpGet("Export")]
-    public IActionResult Export()
+    public async Task<IActionResult> Export()
     {
         var sort = HttpContext.Session.GetString("Sort") ?? "default";
         var filterString = HttpContext.Session.GetString("Filter");
@@ -211,13 +253,13 @@ public class OrgRegistryController : Controller
             ? JsonConvert.DeserializeObject<SearchOrganizationsViewModel>(filterString)!
             : null;
         
-        using var textWriter = new StringWriter();
-        using var csvWriter = new CsvWriter(textWriter, new CsvConfiguration(CultureInfo.InvariantCulture)
+        await using var textWriter = new StringWriter();
+        await using var csvWriter = new CsvWriter(textWriter, new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             Delimiter = ","
         });
 
-        var org = new OrganizationFiltererSorter(_dbContext.Organizations, filter, sort);
+        var org = new OrganizationFiltererSorter(_dbContext.Organizations, filter, sort, await GetUser());
         csvWriter.WriteField("id");
         csvWriter.WriteField("name");
         csvWriter.WriteField("type");
@@ -226,7 +268,7 @@ public class OrgRegistryController : Controller
         csvWriter.WriteField("locality");
         csvWriter.WriteField("address");
         csvWriter.WriteField("is_physical");
-        csvWriter.NextRecord();
+        await csvWriter.NextRecordAsync();
 
         foreach (var organization in org.Organizations)
         {
@@ -238,7 +280,7 @@ public class OrgRegistryController : Controller
             csvWriter.WriteField(organization.Locality.Name);
             csvWriter.WriteField(organization.Address);
             csvWriter.WriteField(organization.IsPhysical);
-            csvWriter.NextRecord();
+            await csvWriter.NextRecordAsync();
         }
 
         return File(Encoding.UTF8.GetBytes(textWriter.ToString()), "text/csv", DateTimeOffset.Now.ToString("s") + ".csv");
@@ -252,12 +294,19 @@ public class OrganizationFiltererSorter
     public OrganizationFiltererSorter(
         DbSet<Organization> organizations,
         SearchOrganizationsViewModel? filter,
-        string sort)
+        string sort,
+        AppUser user)
     {
+        if (user.Role is null)
+        {
+            throw new InvalidOperationException("user.Role is null. Скорее всего забыли заIncludeить роль.");
+        }
         var organizationsQueryable = Filter(organizations, filter);
         organizationsQueryable = Sort(organizationsQueryable, sort);
 
-        Organizations = organizationsQueryable.AsEnumerable();
+        Organizations = organizationsQueryable
+            .AsEnumerable()
+            .Where(org => user.CanReadRegistryEntries(org.Locality));
     }
 
     private static IQueryable<Organization> Filter(
