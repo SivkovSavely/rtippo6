@@ -4,16 +4,16 @@ using Rtippo6Sivkov.Models;
 
 namespace Rtippo6Sivkov.Data;
 
-public class ApplicationDbContext : IdentityDbContext
+public class ApplicationDbContext : IdentityDbContext<AppUser>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
     }
 
-    public DbSet<Organization> Organizations { get; set; }
-    public DbSet<OrganizationType> OrganizationsTypes { get; set; }
-    public DbSet<Locality> Localities { get; set; }
+    public DbSet<Organization> Organizations { get; set; } = null!;
+    public DbSet<OrganizationType> OrganizationsTypes { get; set; } = null!;
+    public DbSet<Locality> Localities { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -38,5 +38,10 @@ public class ApplicationDbContext : IdentityDbContext
             .HasOne(x => x.Administration)
             .WithOne(x => x.Administering)
             .HasForeignKey<Locality>("Administration_Organization_Id").IsRequired(false);
+
+        builder
+            .Entity<AppUser>()
+            .HasOne(x => x.Role)
+            .WithMany(x => x.UsersWithRole);
     }
 }
